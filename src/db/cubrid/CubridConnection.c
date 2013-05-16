@@ -383,7 +383,7 @@ ResultSet_T CubridConnection_executeQuery(T C, const char *sql, va_list ap) {
 		return NULL;
     }
 
-    return ResultSet_new(CubridResultSet_new(C->db, req, C->maxRows), (Rop_T)&cubridrops);
+    return ResultSet_new(CubridResultSet_new(C->db, req, C->maxRows, 0), (Rop_T)&cubridrops);
 }
 
 PreparedStatement_T CubridConnection_prepareStatement(T C, const char *sql, va_list ap) {

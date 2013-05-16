@@ -104,6 +104,7 @@ struct T {
     int lastError;
 	int currentRow;
 	int columnCount;
+    int is_prepared;
 	T_CCI_CUBRID_STMT stmt_type;
 	T_CCI_COL_INFO *column_info;
 	char **columnsData;
@@ -158,7 +159,7 @@ static char* get_cubrid_u_typename(T_CCI_U_TYPE type) {
 #pragma GCC visibility push(hidden)
 #endif
 
-T CubridResultSet_new(int conn, int req, int maxRows) {
+T CubridResultSet_new(int conn, int req, int maxRows, int prepared) {
 
 	T R;
 	T_CCI_COL_INFO *res_col_info;
@@ -180,6 +181,7 @@ T CubridResultSet_new(int conn, int req, int maxRows) {
     R->stmt_type = stmt_type;
     R->column_info = res_col_info;
     R->db = conn;
+    R->is_prepared = prepared;
     R->lastError = CCI_ER_NO_ERROR;
     
     if (R->columnCount <= 0) {
@@ -194,6 +196,10 @@ T CubridResultSet_new(int conn, int req, int maxRows) {
 
 void CubridResultSet_free(T *R) {
 	assert(R && *R);
+
+    if ((*R)->is_prepared == 0) {
+        cci_close_req_handle((*R)->req);
+    }
 
     (*R)->req = -1;
 
@@ -293,7 +299,7 @@ long CubridResultSet_getColumnSize(T R, int columnIndex) {
 
 const char *CubridResultSet_getString(T R, int columnIndex) {
 
-	char *buffer = NULL, *value_buffer = NULL;
+	char *buffer = NULL;
 	int indicator = 0;
 	int res = 0;
 	T_CCI_U_TYPE type;
@@ -319,8 +325,6 @@ const char *CubridResultSet_getString(T R, int columnIndex) {
     R->columnsData[i] = ALLOC(indicator + 1);
     R->columnsData[i][indicator] = 0;
     Str_copy(R->columnsData[i], buffer, indicator);
-
-    FREE(value_buffer);
 
     //DEBUG("%s =>[%s]\n", get_cubrid_u_typename(type), R->columnsData[i]);
     return R->columnsData[i];

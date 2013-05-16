@@ -1,7 +1,7 @@
 #ifndef CUBRIDRESULTSET_INCLUDED
 #define CUBRIDRESULTSET_INCLUDED
 #define T ResultSetDelegate_T
-T CubridResultSet_new(int conn, int req, int maxRows);
+T CubridResultSet_new(int conn, int req, int maxRows,int prepared);
 void CubridResultSet_free(T *R);
 int CubridResultSet_getColumnCount(T R);
 const char *CubridResultSet_getColumnName(T R, int column);

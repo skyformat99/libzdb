@@ -117,7 +117,10 @@ void CubridPreparedStatement_free(T *P) {
     		T_CCI_BLOB blob = (T_CCI_BLOB)((*P)->params[i].buffer);
     		cci_blob_free(blob);
             (*P)->params[i].buffer = NULL;
-    	}
+    	} else if ((*P)->params[i].valueType == CCI_A_TYPE_STR) {
+            FREE((*P)->params[i].buffer);
+            (*P)->params[i].buffer = NULL;
+        }
     }
 
     FREE((*P)->params);
@@ -128,10 +131,15 @@ void CubridPreparedStatement_free(T *P) {
 void CubridPreparedStatement_setString(T P, int parameterIndex, const char *x) {
     TEST_INDEX
 
+    if (P->params[i].buffer) {
+        FREE(P->params[i].buffer);
+        P->params[i].buffer = NULL;
+    }
+
     P->params[i].index = parameterIndex;
     P->params[i].bindType = CCI_U_TYPE_STRING;
     P->params[i].valueType = CCI_A_TYPE_STR;
-    P->params[i].buffer = (void *)x;
+    P->params[i].buffer = Str_dup(x);
         
     if (!x) {
         P->params[i].length = 0;
@@ -197,9 +205,15 @@ void CubridPreparedStatement_setBlob(T P, int parameterIndex, const void *x, int
         P->params[i].is_null = 0;
     }
 
+    if (P->params[i].buffer) {
+   	    T_CCI_BLOB prev_blob = (T_CCI_BLOB)(P->params[i].buffer);
+   	    cci_blob_free(prev_blob);
+        P->params[i].buffer = NULL;
+    }
+
     P->lastError = cci_blob_new(P->db, &blob, &error);
     if (P->lastError != CCI_ER_NO_ERROR) {
-    	THROW(SQLException, "cci_blob_write(%d)", P->lastError);
+    	THROW(SQLException, "cci_blob_new(%d)", P->lastError);
     	return ;
     }
     
@@ -285,7 +299,7 @@ ResultSet_T CubridPreparedStatement_executeQuery(T P) {
         goto handle_error;
     }
 
-    return ResultSet_new(CubridResultSet_new(P->db, P->req, P->maxRows), (Rop_T)&cubridrops);
+    return ResultSet_new(CubridResultSet_new(P->db, P->req, P->maxRows, 1), (Rop_T)&cubridrops);
 
 handle_error:
     THROW(SQLException, "%d", res);
