@@ -57,6 +57,7 @@ struct T {
 	int maxRows;
 	int timeout;
 	int lastError;
+    int autocommit_mode;
     StringBuffer_T sb;
 };
 
@@ -191,6 +192,7 @@ T CubridConnection_new(URL_T url, char **error) {
     C->db = con;
     C->url = url;
     C->sb = StringBuffer_create(STRLEN);
+    C->autocommit_mode = 1;
 
     cci_set_autocommit(con, CCI_AUTOCOMMIT_TRUE);
 	cci_set_lock_timeout(con, 100, &cci_error);
@@ -253,12 +255,20 @@ int CubridConnection_ping(T C) {
 
 int CubridConnection_beginTransaction(T C) {
 	assert(C);
-    return (C->lastError == CCI_ER_NO_ERROR);
+    if (C->autocommit_mode == 1) {
+        return true;
+    } else {
+        return (C->lastError == CCI_ER_NO_ERROR);
+    }
 }
 
 int CubridConnection_commit(T C) {
 	T_CCI_ERROR	error;
 	int res = CCI_ER_NO_ERROR;
+
+    if (C->autocommit_mode == 1) {
+        return true;
+    }
 
     res = cci_end_tran(C->db, CCI_TRAN_COMMIT, &error);
 	if (res != CCI_ER_NO_ERROR) {
@@ -272,6 +282,10 @@ int CubridConnection_rollback(T C) {
 
     T_CCI_ERROR	error;
 	int res = CCI_ER_NO_ERROR;
+    
+    if (C->autocommit_mode == 1) {
+        return true;
+    }
 
 	res = cci_end_tran(C->db, CCI_TRAN_ROLLBACK, &error);
 	if (res != CCI_ER_NO_ERROR) {
@@ -345,14 +359,13 @@ int CubridConnection_execute(T C, const char *sql, va_list ap) {
 
     if ((rowCount = cci_execute(req_handle, 0, 0, &error)) < 0) {
         SET_LAST_ERROR(C, error);
-        CubridConnection_rollback(C);
         return false;
     }
 
     cci_close_req_handle(req_handle);
     req_handle = -1;
         
-    return (C->lastError == CCI_ER_NO_ERROR);
+    return true;
 }
 
 
