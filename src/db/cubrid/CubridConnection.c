@@ -243,6 +243,9 @@ int CubridConnection_ping(T C) {
     }
 
     if ((rowCount = cci_execute(req_handle, 0, 0, &error)) < 0) {
+        cci_close_req_handle(req_handle);
+        req_handle = -1;
+
         SET_LAST_ERROR(C, error);
         return false;
     }
@@ -358,6 +361,9 @@ int CubridConnection_execute(T C, const char *sql, va_list ap) {
     }
 
     if ((rowCount = cci_execute(req_handle, 0, 0, &error)) < 0) {
+        cci_close_req_handle(req_handle);
+        req_handle = -1;
+
         SET_LAST_ERROR(C, error);
         return false;
     }
